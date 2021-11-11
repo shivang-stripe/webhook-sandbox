@@ -6,25 +6,31 @@ const stripe = require('stripe')(process.env.STRIPE_TEST_KEY)
 
 const PORT = 3000
 
+const parseEvent = (signature,body) => {
+    let event;
+    try {
+        event = stripe.webhooks.constructEvent(body,signature,process.env.ENDPOINT_SECRET)
+    } catch (err) {
+        return null;
+    }
+    return event;
+}
+
 app.post(
     "/stripe_checkout",
     express.raw({ 
         type: 'application/json'
     }),(req,res) => {
-        const sig = req.headers['stripe-signature']
+        const signature = req.headers['stripe-signature']
 
-        let event;
+        let event = parseEvent(signature,req.body)
 
-        try {
-            event = stripe.webhooks.constructEvent(req.body,sig,process.env.ENDPOINT_SECRET)
-        } catch (err) {
+        if(event){
+            console.log(event.type)
+            res.send()
+        }else{
             res.status(400).send(`Webhook Error: ${err.message}`)
-            return;
         }
-
-        console.log(event.type)
-        
-        res.send()
     }
 )
 
